@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>万物模拟 · NEW（共演化版）</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: #1a1a1a;
+        color: #e8e8e8;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 12px 20px;
+        background: #252525;
+        border-bottom: 1px solid #333;
+      }
+
+      header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      header p {
+        font-size: 0.85rem;
+        color: #999;
+        margin-top: 4px;
+      }
+
+      main {
+        flex: 1;
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        overflow: hidden;
+        min-height: 0;
+      }
+
+      #map-column {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .map-view-tabs {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .map-view-tab {
+        flex: 1;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #9aa4b8;
+        background: #1a2030;
+        border: 1px solid #333;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .map-view-tab:hover {
+        color: #d0d8e8;
+        background: #222a3c;
+      }
+
+      .map-view-tab.active {
+        color: #f0f4ff;
+        background: #2a3550;
+        border-color: #4a6080;
+      }
+
+      .map-view-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        gap: 6px;
+      }
+
+      .map-view-panel.hidden {
+        display: none;
+      }
+
+      #world-map-stage {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 320px;
+        background: #0a0e18;
+        border: 1px solid #333;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      #world-map-canvas {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        cursor: crosshair;
+      }
+
+      #world-map-hint {
+        font-size: 10px;
+        color: #7a8498;
+        flex-shrink: 0;
+      }
+
+      #canvas-wrap {
+        flex: 1;
+        background: #000;
+        border: 1px solid #333;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+        min-height: 400px;
+        min-width: 0;
+      }
+
+      #map-canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      #metrics-shell {
+        display: flex;
+        flex-direction: row;
+        flex-shrink: 0;
+        align-items: stretch;
+        max-height: calc(100vh - 72px);
+      }
+
+      #metrics-shell.collapsed #metrics-panel {
+        width: 0;
+        min-width: 0;
+        padding: 0;
+        border-width: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #metrics-panel {
+        width: 228px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: calc(100vh - 72px);
+        overflow-x: hidden;
+        overflow-y: auto;
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 4px 0 0 4px;
+        border-right: none;
+        padding: 8px;
+        transition: width 0.22s ease, opacity 0.18s ease, padding 0.22s ease;
+      }
+
+      .metrics-panel-title {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #aaa;
+        letter-spacing: 0.06em;
+        padding: 2px 4px 4px;
+        border-bottom: 1px solid #333;
+        flex-shrink: 0;
+      }
+
+      .metric-chart-block {
+        flex-shrink: 0;
+      }
+
+      .metric-chart-label {
+        font-size: 0.72rem;
+        color: #888;
+        margin-bottom: 4px;
+        padding-left: 2px;
+      }
+
+      .metric-chart-wrap {
+        height: 132px;
+        background: #141820;
+        border: 1px solid #2a3545;
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .metric-chart-wrap canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      #metrics-toggle {
+        width: 22px;
+        flex-shrink: 0;
+        align-self: stretch;
+        border: 1px solid #333;
+        border-radius: 0 4px 4px 0;
+        background: #252525;
+        color: #aaa;
+        cursor: pointer;
+        font-size: 0.75rem;
+        line-height: 1;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+      }
+
+      #metrics-toggle:hover {
+        background: #333;
+        color: #ddd;
+      }
+
+      #map-info {
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        line-height: 1.55;
+        color: #b0b8c4;
+        padding: 6px 10px;
+        background: #252525;
+        border: 1px solid #333;
+        border-radius: 4px;
+      }
+
+      #metrics-shell.collapsed #metrics-toggle {
+        border-radius: 4px;
+        writing-mode: vertical-rl;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        width: 26px;
+      }
+
+      #controls {
+        width: 300px;
+        flex-shrink: 0;
+        background: #252525;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+      }
+
+      .control-group label {
+        display: block;
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        color: #ccc;
+      }
+
+      .control-group input[type="range"] {
+        width: 100%;
+        accent-color: #e0ac9d;
+      }
+
+      .control-group select {
+        width: 100%;
+        padding: 6px 8px;
+        background: #1e1e1e;
+        color: #e8e8e8;
+        border: 1px solid #444;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        cursor: pointer;
+      }
+
+      .control-group .value {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 4px;
+      }
+
+      .control-group .hint {
+        font-size: 0.72rem;
+        color: #666;
+        margin-top: 4px;
+        line-height: 1.35;
+      }
+
+      .sim-speed-current {
+        float: right;
+        font-size: 0.8rem;
+        color: #e0ac9d;
+        font-weight: 500;
+      }
+
+      .sim-speed-rail {
+        position: relative;
+        margin-top: 2px;
+        padding: 0 2px;
+      }
+
+      .sim-speed-rail::before {
+        content: "";
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        top: 11px;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          #555 0,
+          #555 2px,
+          transparent 2px,
+          transparent calc(20% - 1px),
+          #555 calc(20% - 1px),
+          #555 calc(20% + 1px),
+          transparent calc(20% + 1px),
+          transparent calc(40% - 1px),
+          #555 calc(40% - 1px),
+          #555 calc(40% + 1px),
+          transparent calc(40% + 1px),
+          transparent calc(60% - 1px),
+          #555 calc(60% - 1px),
+          #555 calc(60% + 1px),
+          transparent calc(60% + 1px),
+          transparent calc(80% - 1px),
+          #555 calc(80% - 1px),
+          #555 calc(80% + 1px),
+          transparent calc(80% + 1px),
+          transparent calc(100% - 2px),
+          #555 calc(100% - 2px)
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .sim-speed-rail input[type="range"] {
+        width: 100%;
+        margin: 0;
+        display: block;
+        position: relative;
+        z-index: 1;
+      }
+
+      .sim-speed-ticks {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 4px;
+        padding: 0 6px;
+        font-size: 0.65rem;
+        color: #777;
+        line-height: 1.2;
+        user-select: none;
+      }
+
+      .sim-speed-ticks span {
+        flex: 1 1 0;
+        text-align: center;
+        min-width: 0;
+      }
+
+      .sim-speed-ticks span::before {
+        content: "";
+        display: block;
+        width: 1px;
+        height: 5px;
+        background: #666;
+        margin: 0 auto 3px;
+      }
+
+      .sim-step-row {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 4px;
+        width: 100%;
+      }
+
+      .sim-step-row .sim-step-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 5px 2px;
+        font-size: 0.68rem;
+        background: #2a2a2a;
+        color: #ccc;
+        border: 1px solid #444;
+        border-radius: 4px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .sim-step-row .sim-step-btn:hover {
+        background: #353535;
+        border-color: #666;
+        color: #eee;
+      }
+
+      .layer-tabs {
+        display: flex;
+        gap: 4px;
+      }
+
+      .layer-tabs-wrap {
+        flex-wrap: wrap;
+      }
+
+      .layer-tabs-wrap .layer-tab {
+        flex: 1 1 28%;
+        min-width: 52px;
+      }
+
+      .layer-tab {
+        flex: 1;
+        padding: 8px 4px;
+        font-size: 0.78rem;
+        background: #2a2a2a;
+        color: #aaa;
+        border: 1px solid #444;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .layer-tab:hover {
+        background: #333;
+        color: #ddd;
+      }
+
+      .layer-tab.active {
+        background: #3d3530;
+        color: #e0ac9d;
+        border-color: #e0ac9d66;
+        font-weight: 600;
+      }
+
+      .element-checks {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .element-check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: #bbb;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .element-check input {
+        accent-color: #e0ac9d;
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+
+      .element-cat {
+        margin-left: auto;
+        font-size: 0.68rem;
+        color: #666;
+      }
+
+      .geology-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: #bbb;
+      }
+
+      .legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        flex-shrink: 0;
+      }
+
+      details.geo-detail {
+        border-radius: 3px;
+      }
+
+      details.geo-detail > summary {
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+        padding: 2px 0;
+      }
+
+      details.geo-detail > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.geo-detail > summary::before {
+        content: "▸";
+        font-size: 0.65rem;
+        color: #666;
+        margin-right: 4px;
+      }
+
+      details.geo-detail[open] > summary::before {
+        content: "▾";
+      }
+
+      .geo-detail-body {
+        padding: 6px 0 8px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .geo-detail-body p {
+        font-size: 0.72rem;
+        color: #888;
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      .detail-label {
+        display: inline-block;
+        min-width: 2.4em;
+        color: #aaa;
+        font-weight: 600;
+        margin-right: 4px;
+      }
+
+      .vein-intro {
+        font-size: 0.72rem;
+        color: #888;
+        line-height: 1.45;
+        margin: 0;
+      }
+
+      .vein-intro strong {
+        color: #bbb;
+        font-weight: 600;
+      }
+
+      .vein-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      details.vein-detail > summary {
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+        padding: 2px 0;
+      }
+
+      details.vein-detail > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.vein-detail > summary::before {
+        content: "▸";
+        font-size: 0.65rem;
+        color: #666;
+        margin-right: 4px;
+      }
+
+      details.vein-detail[open] > summary::before {
+        content: "▾";
+      }
+
+      .vein-el-swatch {
+        width: 14px;
+        height: 14px;
+      }
+
+      .vein-geo-swatch {
+        width: 10px;
+        height: 10px;
+        opacity: 0.85;
+      }
+
+      .seed-group label {
+        display: block;
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        color: #ccc;
+      }
+
+      .seed-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .seed-row code {
+        flex: 1;
+        font-size: 0.8rem;
+        color: #e0ac9d;
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 3px;
+        padding: 4px 8px;
+      }
+
+      .seed-row button {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        background: #333;
+        color: #e8e8e8;
+        border: 1px solid #444;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+
+      .seed-row button:hover {
+        background: #3d3d3d;
+      }
+
+      #btn-pick-region.active-pick {
+        background: #4a3820;
+        border-color: #ffcc44;
+        color: #ffe8a8;
+      }
+
+      .full-width-btn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 7px 10px;
+        background: #2a3548;
+        color: #e8e8e8;
+        border: 1px solid #445;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+
+      .full-width-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .region-picker-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background: rgba(0, 0, 0, 0.72);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .region-picker-panel {
+        background: #1e2430;
+        border: 1px solid #445;
+        border-radius: 8px;
+        max-width: min(920px, 96vw);
+        width: 100%;
+        padding: 14px 16px 12px;
+        position: relative;
+      }
+
+      .region-picker-panel header h2 {
+        font-size: 1rem;
+        margin-bottom: 4px;
+      }
+
+      .region-picker-panel header p {
+        font-size: 0.8rem;
+        color: #9aa4b8;
+      }
+
+      .region-picker-close {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        background: transparent;
+        border: none;
+        color: #ccc;
+        font-size: 1.4rem;
+        cursor: pointer;
+      }
+
+      .region-picker-grid {
+        width: 100%;
+        height: auto;
+        display: block;
+        margin-top: 10px;
+        border: 1px solid #334;
+        border-radius: 4px;
+        cursor: crosshair;
+      }
+
+      .region-picker-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+        font-size: 0.75rem;
+        color: #aab;
+      }
+
+      .region-picker-legend i {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-right: 4px;
+        vertical-align: -2px;
+        border-radius: 2px;
+      }
+
+      .region-picker-status {
+        font-size: 0.78rem;
+        color: #9ab;
+      }
+
+      .stepper-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .stepper-row button {
+        width: 36px;
+        height: 32px;
+        padding: 0;
+        flex: 0 0 auto;
+        font-size: 0.85rem;
+      }
+
+      .stepper-row button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .stepper-value {
+        min-width: 3.5em;
+        text-align: center;
+        font-size: 0.9rem;
+        color: #e0ac9d;
+      }
+
+      .pan-pad {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .pan-mid {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .pan-btn {
+        width: 36px;
+        height: 32px;
+        padding: 0;
+        flex: 0 0 auto;
+        font-size: 0.85rem;
+        background: #333;
+        color: #e8e8e8;
+        border: 1px solid #444;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .pan-btn:hover {
+        background: #3d3d3d;
+      }
+
+      .pan-reset {
+        font-size: 0.75rem;
+      }
+
+      #map-canvas {
+        touch-action: none;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        color: #ccc;
+        cursor: pointer;
+      }
+
+      .checkbox-label input[type="checkbox"] {
+        accent-color: #1f5362;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+
+      details.section {
+        border-top: 1px solid #333;
+        padding-top: 8px;
+      }
+
+      details.section > summary {
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #aaa;
+        letter-spacing: 0.05em;
+        user-select: none;
+      }
+
+      details.section > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      details.section > summary::before {
+        content: "▸";
+        font-size: 0.7rem;
+        color: #777;
+      }
+
+      details.section[open] > summary::before {
+        content: "▾";
+      }
+
+      .section-body {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding-top: 12px;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        flex: 1;
+        padding: 8px 12px;
+        background: #333;
+        color: #e8e8e8;
+        border: 1px solid #444;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+
+      button:hover {
+        background: #3d3d3d;
+      }
+
+      #status {
+        font-size: 0.8rem;
+        color: #888;
+        line-height: 1.5;
+        border-top: 1px solid #333;
+        padding-top: 12px;
+      }
+
+      #legend {
+        font-size: 0.75rem;
+        color: #888;
+        line-height: 1.6;
+      }
+
+      .legend-bar {
+        height: 12px;
+        border-radius: 2px;
+        margin: 6px 0;
+        background: linear-gradient(
+          to right,
+          #fff 0%,
+          #e0ac9d 35%,
+          #000 100%
+        );
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>万物模拟 · NEW（共演化版）· :5180</h1>
+      <p>约 10000 块维诺图 · 行星地图 40000×20000 km（经向环接）</p>
+    </header>
+    <main>
+      <div id="metrics-shell">
+        <aside id="metrics-panel">
+          <div class="metrics-panel-title">计量图</div>
+          <div class="metric-chart-block">
+            <div class="metric-chart-label">面积分布</div>
+            <div class="metric-chart-wrap"><canvas id="chart-area"></canvas></div>
+          </div>
+          <div class="metric-chart-block">
+            <div class="metric-chart-label">抖动</div>
+            <div class="metric-chart-wrap"><canvas id="chart-jitter"></canvas></div>
+          </div>
+          <div class="metric-chart-block">
+            <div class="metric-chart-label">剖面密度</div>
+            <div class="metric-chart-wrap"><canvas id="chart-profile"></canvas></div>
+          </div>
+        </aside>
+        <button type="button" id="metrics-toggle" aria-expanded="true" title="向左折叠计量图">◀</button>
+      </div>
+      <div id="map-column">
+        <div id="canvas-wrap">
+          <canvas id="map-canvas"></canvas>
+        </div>
+        <div id="map-info" aria-live="polite"></div>
+      </div>
+      <aside id="controls"></aside>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

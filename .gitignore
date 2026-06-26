@@ -1,0 +1,20 @@
+# 依赖与构建产物（勿提交）
+node_modules/
+dist/
+
+# 本地临时 / 解压文档
+_geology_docx_extract/
+geology_temp.zip
+geology_doc_text.txt
+plate_doc_text.txt
+scripts/diag-out.txt
+
+# 预览图与 Office 临时锁文件
+preview_*.png
+~$*.docx
+*.zip
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+*.log
