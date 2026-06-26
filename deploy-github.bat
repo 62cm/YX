@@ -2,7 +2,12 @@
 chcp 65001 >nul
 setlocal EnableDelayedExpansion
 
-cd /d "%~dp0"
+cd /d "%~dp0."
+if errorlevel 1 (
+  echo [ERROR] Cannot open folder: %~dp0
+  pause
+  exit /b 1
+)
 
 echo ========================================
 echo   Deploy to GitHub Pages
@@ -20,14 +25,19 @@ if errorlevel 1 (
 
 where node >nul 2>&1
 if errorlevel 1 (
-  echo [ERROR] node not found
+  echo [ERROR] node not found - install Node.js first
   pause
   exit /b 1
 )
 
 echo [1/4] Sync from NEW folder ...
 call "%~dp0sync-from-NEW.bat"
-if errorlevel 1 exit /b 1
+set "SYNC_RC=!ERRORLEVEL!"
+if !SYNC_RC! GEQ 8 (
+  echo [ERROR] sync failed, code !SYNC_RC!
+  pause
+  exit /b 1
+)
 
 if not exist ".git" (
   echo.
@@ -73,10 +83,7 @@ echo [4/4] git push origin main ...
 git push -u origin main
 if errorlevel 1 (
   echo.
-  echo [ERROR] push failed.
-  echo If repo does not exist yet, run once:
-  echo   gh repo create YX --public --source=. --remote=origin --push
-  echo Or create https://github.com/62cm/YX manually then push again.
+  echo [ERROR] push failed - check GitHub login
   pause
   exit /b 1
 )
@@ -88,4 +95,4 @@ echo   Then open: https://62cm.github.io/YX/
 echo   Hard refresh: Ctrl+F5
 echo ========================================
 pause
-endlocal
+exit /b 0
